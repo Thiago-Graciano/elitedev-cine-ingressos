@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Papel {
+  ORGANIZADOR
+  CLIENTE
+  PORTARIA
+}
+
+enum StatusAssento {
+  DISPONIVEL
+  RESERVADO
+  VENDIDO
+}
+
+enum StatusIngresso {
+  VALIDO
+  USADO
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  papel     Papel
+  criadoEm  DateTime @default(now())
+
+  reservas  Reserva[]
+}
+
+model Evento {
+  id        String   @id @default(uuid())
+  titulo    String
+  sinopse   String?
+  posterUrl String?
+  tmdbId    Int?
+  criadoEm  DateTime @default(now())
+
+  sessoes   Sessao[]
+}
+
+model Sessao {
+  id         String   @id @default(uuid())
+  eventoId   String
+  evento     Evento   @relation(fields: [eventoId], references: [id])
+  dataHora   DateTime
+  local      String
+  capacidade Int
+  preco      Decimal  @db.Decimal(10, 2)
+
+  assentos   Assento[]
+}
+
+model Assento {
+  id       String        @id @default(uuid())
+  sessaoId String
+  sessao   Sessao        @relation(fields: [sessaoId], references: [id])
+  codigo   String
+  status   StatusAssento @default(DISPONIVEL)
+
+  reserva  Reserva?
+
+  @@unique([sessaoId, codigo])
+}
+
+model Reserva {
+  id        String   @id @default(uuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  sessaoId  String
+  assentoId String   @unique
+  assento   Assento  @relation(fields: [assentoId], references: [id])
+  criadoEm  DateTime @default(now())
+
+  ingresso  Ingresso?
+}
+
+model Ingresso {
+  id         String         @id @default(uuid())
+  reservaId  String         @unique
+  reserva    Reserva        @relation(fields: [reservaId], references: [id])
+  qrToken    String         @unique
+  shareToken String         @unique
+  status     StatusIngresso @default(VALIDO)
+  usadoEm    DateTime?
+  criadoEm   DateTime       @default(now())
+}
