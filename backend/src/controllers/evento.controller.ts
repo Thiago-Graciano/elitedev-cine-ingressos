@@ -6,33 +6,37 @@ export async function buscarCatalogo(req: Request, res: Response) {
   const termo = req.query.busca as string;
   if (!termo) return res.status(400).json({ erro: 'Informe um termo de busca' });
 
-  try {
-    const filmes = await buscarFilmes(termo);
-    res.json(filmes);
-  } catch (erro) {
-    res.status(502).json({ erro: (erro as Error).message });
-  }
+  const filmes = await buscarFilmes(termo);
+  res.json(filmes);
 }
 
 export async function criarEvento(req: Request, res: Response) {
   const { tmdbId, dataHora, local, capacidade, preco } = req.body;
 
-  const filme = await buscarFilmePorId(tmdbId);
+  if (!tmdbId || !dataHora || !local || !capacidade || !preco) {
+    return res.status(400).json({ erro: 'Campos obrigatórios: tmdbId, dataHora, local, capacidade, preco' });
+  }
 
-  const evento = await prisma.evento.upsert({
-    where: { tmdbId },
-    update: {},
-    create: {
-      titulo: filme.title,
-      sinopse: filme.overview,
-      posterUrl: `https://image.tmdb.org/t/p/w500${filme.poster_path}`,
-      tmdbId,
-    },
-  });
+  try {
+    const filme = await buscarFilmePorId(tmdbId);
 
-  const sessao = await prisma.sessao.create({
-    data: { eventoId: evento.id, dataHora, local, capacidade, preco },
-  });
+    const evento = await prisma.evento.upsert({
+      where: { tmdbId },
+      update: {},
+      create: {
+        titulo: filme.title,
+        sinopse: filme.overview,
+        posterUrl: `https://image.tmdb.org/t/p/w500${filme.poster_path}`,
+        tmdbId,
+      },
+    });
 
-  res.status(201).json({ evento, sessao });
+    const sessao = await prisma.sessao.create({
+      data: { eventoId: evento.id, dataHora, local, capacidade, preco },
+    });
+
+    res.status(201).json({ evento, sessao });
+  } catch (erro) {
+    res.status(400).json({ erro: (erro as Error).message });
+  }
 }

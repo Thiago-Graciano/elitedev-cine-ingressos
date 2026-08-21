@@ -20,5 +20,12 @@ export async function buscarFilmePorId(tmdbId: number) {
   const resposta = await fetch(url, {
     headers: { Authorization: `Bearer ${process.env.TMDB_API_KEY}` },
   });
-  return resposta.json();
+
+  const dados = await resposta.json();
+
+  if (!resposta.ok) {
+    throw new Error(`Filme não encontrado na TMDb: ${dados.status_message || 'erro desconhecido'}`);
+  }
+
+  return dados;
 }
