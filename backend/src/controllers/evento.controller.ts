@@ -19,8 +19,12 @@ export async function criarEvento(req: Request, res: Response) {
   const { tmdbId, dataHora, local, capacidade, preco } = req.body;
 
   if (!tmdbId || !dataHora || !local || !capacidade || !preco) {
-    return res.status(400).json({ erro: 'Campos obrigatórios: tmdbId, dataHora, local, capacidade, preco' });
-  }
+  return res.status(400).json({ erro: 'Campos obrigatórios: tmdbId, dataHora, local, capacidade, preco' });
+}
+
+if (!Number.isInteger(capacidade) || capacidade <= 0) {
+  return res.status(400).json({ erro: 'Capacidade deve ser um número inteiro positivo' });
+}
 
   try {
     const filme = await buscarFilmePorId(tmdbId);
@@ -81,7 +85,10 @@ export async function editarSessao(req: Request, res: Response) {
       data: { dataHora, local, preco },
     });
     res.json(sessao);
-  } catch (erro) {
-    res.status(404).json({ erro: 'Sessão não encontrada' });
+  } catch (erro: any) {
+    if (erro.code === 'P2025') {
+      return res.status(404).json({ erro: 'Sessão não encontrada' });
+    }
+    res.status(400).json({ erro: erro.message });
   }
 }
